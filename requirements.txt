@@ -1,0 +1,5 @@
+JasonUtils>=1.0.6
+pyshark>=0.4.3
+py>=1.10.0
+scapy>=2.4.5
+loguru>=0.5.3
