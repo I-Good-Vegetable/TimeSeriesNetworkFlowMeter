@@ -1,4 +1,4 @@
-from typing import Union, Callable, Iterable
+from typing import Union, Callable, Iterable, Type
 
 from pyshark import FileCapture
 from scapy.utils import PcapReader
@@ -13,7 +13,7 @@ def pcap2packets(
         filepath,
         nPackets=-1,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,
@@ -43,7 +43,7 @@ def pcap2packets(
 def pcap2generator(
         filepath,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,
@@ -76,7 +76,7 @@ def pcap2packetsPyshark(
         filepath,
         nPackets=-1,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,
@@ -93,7 +93,7 @@ def pcap2packetsPyshark(
 def pcap2generatorPyshark(
         filepath,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,
@@ -114,7 +114,7 @@ def pcap2packetsScapy(
         filepath,
         nPackets=-1,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,
@@ -136,7 +136,7 @@ def pcap2packetsScapy(
 def pcap2generatorScapy(
         filepath,
         castTo: Union[
-            AbstractPacketBase,
+            Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
         **kwargs,

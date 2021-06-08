@@ -10,18 +10,6 @@ from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, featureSet2csv, fea
 
 @timing
 def main():
-    pcapPath = 'Data/PCAP/Test.pcap'
-    csvPath = 'Data/CSV/Test.csv'
-
-    featureSet = packets2featureSet(pcap2generator(pcapPath), FlowSessionManager(), None)
-
-    featureSet2csv(csvPath, featureSet)
-
-    # featureMat, featureNames = featureSet2mat(featureSet, True)
-    # featureMat2csv(csvPath, featureMat, featureNames)
-    #
-    # featureDf = featureSet2df(featureSet)
-    # featureDf2csv(csvPath, featureDf)
     pass
 
 

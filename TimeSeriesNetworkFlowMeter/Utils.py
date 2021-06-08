@@ -256,13 +256,16 @@ def saveFeatureSetDictCsr(
 def saveTimeSeriesFeatureSet(
         folder,
         tsFeatureSet: TimeSeriesFeatureSet,
-        subFlowLen,
+        subFlowLen=None,
         defaultValue=0.0,
         indexColName='Index',
         indexFilename='Index.csv',
         featureFilename='Features.npz',
 ):
     mkdir(folder=folder)
+    if subFlowLen is None:
+        from TimeSeriesNetworkFlowMeter.Flow import TimeSeriesFlow
+        subFlowLen = TimeSeriesFlow.getSubFlowLen()
     basicInfoList = list()
     csrs = dict()
     for index, tsFeature in enumerate(tsFeatureSet):
@@ -281,8 +284,3 @@ def saveTimeSeriesFeatureSet(
     featureFilepath = str(Path(folder) / featureFilename)
     savez_compressed(featureFilepath, **csrs)
     logger.success(f'Time series feature set is saved to {featureFilepath}')
-
-
-# def loadTimeSeriesFeatureSet(
-#         indexFile
-# )
