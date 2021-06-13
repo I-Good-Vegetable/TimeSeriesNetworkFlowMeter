@@ -3,10 +3,14 @@ from typing import Union, Callable, Iterable, Dict, Collection, Optional, Any
 
 import numpy as np
 from numpy import savez_compressed
+from rich.progress import track
 from scipy.sparse import csr_matrix, save_npz
 
 from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, TimeSeriesFeatureSet, TimeSeriesFeature
+
+
+pBar = track
 
 
 def s2us(s):

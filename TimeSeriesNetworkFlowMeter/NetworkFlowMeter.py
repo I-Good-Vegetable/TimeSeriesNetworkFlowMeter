@@ -9,11 +9,11 @@ from TimeSeriesNetworkFlowMeter.Flow import Flow, FlowTimeout, TimeSeriesFlow, T
     FlowBase
 from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.PCAP import pcap2generator
-from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionKeyInfo
+from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionKeyInfo, pSessionKey
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, FlowSessionKeyInfo, TimeSeriesFeatureSet, \
     TimeSeriesFeature
 from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, sortTimeSeriesFeatureSet, featureSet2csv, mkdir, \
-    saveTimeSeriesFeatureSet
+    saveTimeSeriesFeatureSet, pBar
 
 
 def checkFeatureExtractorManager(
@@ -66,7 +66,7 @@ def flowGeneratorBase(
         )
         if not checkSessionKeyInfo(fski):
             droppedPackets += 1
-            logger.warning(f'A packet has been dropped:\n{packet}')
+            logger.warning(f'A packet has been dropped: {pSessionKey(packet)}')
             continue
         if fsk in aliveFlows:
             try:
@@ -490,7 +490,7 @@ def pcaps2timeSeriesDatasets(
 
     tsFeatureSetDict: Dict[str, TimeSeriesFeatureSet] = dict()
     failedFiles = list()
-    for pcapFile in pcapFiles:
+    for pcapFile in pBar(pcapFiles, description='Converting......'):
         logger.info(f'Processing {pcapFile}')
         tmpOutputFolder = outputFolder / pcapFile.stem if outputMode == 'IndividualFolders' \
             else outputFolder

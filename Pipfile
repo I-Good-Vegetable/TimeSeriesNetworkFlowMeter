@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 jasonutils = "*"
 loguru = "*"
+rich = "*"
 
 [dev-packages]
 

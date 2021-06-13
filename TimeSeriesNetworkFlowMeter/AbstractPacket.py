@@ -93,17 +93,19 @@ class AbstractPacketPyshark(AbstractPacketBase):
             # 3rd layer (de facto)
             'TCP': 'TCP',
             'UDP': 'UDP',
-            'ICMP': 'ICMP',
-            'IGMP': 'IGMP',
-            'ICMPV6': 'ICMPv6',
+            # 'ICMP': 'ICMP',
+            # 'IGMP': 'IGMP',
+            # 'ICMPV6': 'ICMPv6',
+
             # 2nd layer
-            'IPV6': 'IPv6',
+            # 'IPV6': 'IPv6',
             'IP': 'IP',
             'ARP': 'APR',
-            'LLC': 'LLC',
-            'LLDP': 'LLDP',
+            # 'LLC': 'LLC',
+            # 'LLDP': 'LLDP',
+
             # 1st layer
-            'ETH': 'Ether',
+            # 'ETH': 'Ether',
         }
         for p, pName in protocols.items():
             if p in self:
