@@ -17,7 +17,7 @@ def main():
     elif pcapFolder == '' or pcapFolder is None:
         pcapFolder = input(f'PCAP Folder Path: ')
         outputFolder = input(f'Output Folder Path: ')
-    pcaps2timeSeriesDatasets(pcapFolder, outputFolder)
+    pcaps2timeSeriesDatasets(pcapFolder, outputFolder, keep_packets=False)
 
 
 if __name__ == '__main__':
