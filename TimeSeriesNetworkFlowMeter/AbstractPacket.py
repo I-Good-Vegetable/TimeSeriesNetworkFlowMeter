@@ -9,50 +9,85 @@ class AbstractPacketBase:
     in case some subclasses inherit from backend's Packet,
     preventing name collision
     """
-    def __init__(self, p):
-        self._packet = p
 
-    def __repr__(self):
-        return self._packet.__repr__()
+    def __init__(self, packet):
+        self._protocol = self._getProtocol(packet)
+        self._srcIp = self._getSrcIp(packet)
+        self._srcPort = self._getSrcPort(packet)
+        self._dstIp = self._getDstIp(packet)
+        self._dstPort = self._getDstPort(packet)
+        self._srcMac = self._getSrcMac(packet)
+        self._dstMac = self._getDstMac(packet)
+        self._ts = self._getTs(packet)
+        self._len = self._getLen(packet)
+        self._tcpFlags = self._getTcpFlags(packet)
 
     def __str__(self):
-        return self._packet.__str__()
+        return '_'.join([
+            str(self.getProtocol()),
+            str(self.getSrcIp()),
+            str(self.getSrcPort()),
+            str(self.getDstIp()),
+            str(self.getDstPort()),
+            str(self.getTs())
+        ])
 
-    def __contains__(self, item):
-        return self._packet.__contains__(item)
+    def _getProtocol(self, packet):
+        raise NotImplementedError
 
     def getProtocol(self):
         """
         Get the highest protocol up to transport layer
         :return: the protocol
         """
+        return self._protocol
+
+    def _getSrcIp(self, packet):
         raise NotImplementedError
 
     def getSrcIp(self):
+        return self._srcIp
+
+    def _getSrcPort(self, packet):
         raise NotImplementedError
 
     def getSrcPort(self):
+        return self._srcPort
+
+    def _getDstIp(self, packet):
         raise NotImplementedError
 
     def getDstIp(self):
+        return self._dstIp
+
+    def _getDstPort(self, packet):
         raise NotImplementedError
 
     def getDstPort(self):
+        return self._dstPort
+
+    def _getSrcMac(self, packet):
         raise NotImplementedError
 
     def getSrcMac(self):
+        return self._srcMac
+
+    def _getDstMac(self, packet):
         raise NotImplementedError
 
     def getDstMac(self):
-        raise NotImplementedError
+        return self._dstMac
 
-    def getTs(self):
+    def _getTs(self, packet):
         """
         Timestamp using second as unit
 
         :return: timestamp (double)
         """
         raise NotImplementedError
+
+    def getTs(self):
+        return self._ts
 
     def getTsDatetime(self):
         from pandas import to_datetime
@@ -63,8 +98,17 @@ class AbstractPacketBase:
         strTs = str(ts) if tsFormat is None else ts.strftime(tsFormat)
         return strTs
 
-    def getLen(self):
+    def _getLen(self, packet):
         raise NotImplementedError
+
+    def getLen(self):
+        return self._len
+
+    def _getTcpFlags(self, packet):
+        raise NotImplementedError
+
+    def getTcpFlags(self):
+        return self._tcpFlags
 
     @staticmethod
     def getTcpFlagNames() -> List[str]:
@@ -82,12 +126,12 @@ class AbstractPacketBase:
         ]
 
     def getTcpFlag(self, flagName) -> int:
-        raise NotImplementedError
+        return self._tcpFlags[flagName]
 
 
 class AbstractPacketPyshark(AbstractPacketBase):
 
-    def getProtocol(self):
+    def _getProtocol(self, packet):
         protocol = None
         protocols = {
             # 3rd layer (de facto)
@@ -108,63 +152,60 @@ class AbstractPacketPyshark(AbstractPacketBase):
             # 'ETH': 'Ether',
         }
         for p, pName in protocols.items():
-            if p in self:
+            if p in packet:
                 protocol = pName
                 break
         return protocol
 
-    def getSrcIp(self):
+    def _getSrcIp(self, packet):
         srcIp = None
-        if 'IP' in self:
-            srcIp = str(self._packet.ip.src)
-        elif 'IPV6' in self:
-            srcIp = str(self._packet.ipv6.src)
+        if 'IP' in packet:
+            srcIp = str(packet.ip.src)
+        elif 'IPV6' in packet:
+            srcIp = str(packet.ipv6.src)
         return srcIp
 
-    def getSrcPort(self):
+    def _getSrcPort(self, packet):
         srcPort = None
-        if 'TCP' in self:
-            srcPort = int(self._packet.tcp.srcport)
-        elif 'UDP' in self:
-            srcPort = int(self._packet.udp.srcport)
+        if 'TCP' in packet:
+            srcPort = int(packet.tcp.srcport)
+        elif 'UDP' in packet:
+            srcPort = int(packet.udp.srcport)
         return srcPort
 
-    def getDstIp(self):
+    def _getDstIp(self, packet):
         dstIp = None
-        if 'IP' in self:
-            dstIp = str(self._packet.ip.dst)
-        elif 'IPV6' in self:
-            dstIp = str(self._packet.ipv6.dst)
+        if 'IP' in packet:
+            dstIp = str(packet.ip.dst)
+        elif 'IPV6' in packet:
+            dstIp = str(packet.ipv6.dst)
         return dstIp
 
-    def getDstPort(self):
+    def _getDstPort(self, packet):
         dstPort = None
-        if 'TCP' in self:
-            dstPort = int(self._packet.tcp.dstport)
-        elif 'UDP' in self:
-            dstPort = int(self._packet.udp.dstport)
+        if 'TCP' in packet:
+            dstPort = int(packet.tcp.dstport)
+        elif 'UDP' in packet:
+            dstPort = int(packet.udp.dstport)
         return dstPort
 
-    def getSrcMac(self):
+    def _getSrcMac(self, packet):
         srcMac = None
-        if 'ETH' in self:
-            srcMac = str(self._packet.eth.src)
+        if 'ETH' in packet:
+            srcMac = str(packet.eth.src)
         return srcMac
 
-    def getDstMac(self):
+    def _getDstMac(self, packet):
         dstMac = None
-        if 'ETH' in self:
-            dstMac = str(self._packet.eth.dst)
+        if 'ETH' in packet:
+            dstMac = str(packet.eth.dst)
         return dstMac
 
-    def getTs(self):
-        return float(self._packet.sniff_timestamp)
+    def _getTs(self, packet):
+        return float(packet.sniff_timestamp)
 
-    def getTsDatetime(self):
-        return self._packet.sniff_time
-
-    def getLen(self):
-        return int(self._packet.frame_info.len)
+    def _getLen(self, packet):
+        return int(packet.frame_info.len)
 
     _flagExtractors = {
         'Ack': lambda p: int(p.tcp.flags_ack) if 'TCP' in p else 0,
@@ -180,43 +221,43 @@ class AbstractPacketPyshark(AbstractPacketBase):
         'Urg': lambda p: int(p.tcp.flags_urg) if 'TCP' in p else 0,
     }
 
-    def getTcpFlag(self, flagName) -> int:
-
-        if flagName in self._flagExtractors:
-            return self._flagExtractors[flagName](self._packet)
-        else:
-            return 0
+    def _getTcpFlags(self, packet):
+        return {
+            flagName: flagExtractor(packet)
+            for flagName, flagExtractor in self._flagExtractors.items()
+        }
 
 
 class AbstractPacketScapy(AbstractPacketBase):
-    def getProtocol(self):
+
+    def _getProtocol(self, packet):
         pass
 
-    def getSrcIp(self):
+    def _getSrcIp(self, packet):
         pass
 
-    def getSrcPort(self):
+    def _getSrcPort(self, packet):
         pass
 
-    def getDstIp(self):
+    def _getDstIp(self, packet):
         pass
 
-    def getDstPort(self):
+    def _getDstPort(self, packet):
         pass
 
-    def getSrcMac(self):
+    def _getSrcMac(self, packet):
         pass
 
-    def getDstMac(self):
+    def _getDstMac(self, packet):
         pass
 
-    def getTs(self):
+    def _getTs(self, packet):
         pass
 
-    def getLen(self):
+    def _getLen(self, packet):
         pass
 
-    def getTcpFlag(self, flagName) -> int:
+    def _getTcpFlags(self, packet):
         pass
 
 

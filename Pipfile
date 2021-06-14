@@ -7,6 +7,9 @@ name = "pypi"
 jasonutils = "*"
 loguru = "*"
 rich = "*"
+py = "*"
+pyshark = "*"
+scapy = "*"
 
 [dev-packages]
 
