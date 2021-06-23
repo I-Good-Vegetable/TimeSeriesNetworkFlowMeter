@@ -4,6 +4,7 @@ Logs/
 Test*.py
 Pipfile
 Pipfile.lock
+.DS_Store
 
 
 # Created by .ignore support plugin (hsz.mobi)
