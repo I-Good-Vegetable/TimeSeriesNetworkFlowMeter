@@ -1,8 +1,5 @@
 from typing import Union, Callable, Iterable, Type
 
-from pyshark import FileCapture
-from scapy.utils import PcapReader
-
 from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.AbstractPacket import AbstractPacket, AbstractPacketBase
 from TimeSeriesNetworkFlowMeter.NetworkBackend import getBackend
@@ -81,6 +78,7 @@ def pcap2packetsPyshark(
         ] = AbstractPacket,
         **kwargs,
 ):
+    from pyshark import FileCapture
     fileCapture = FileCapture(filepath, **kwargs)
     if nPackets == -1:
         packets = [castTo(packet) for packet in fileCapture]
@@ -98,6 +96,7 @@ def pcap2generatorPyshark(
         ] = AbstractPacket,
         **kwargs,
 ):
+    from pyshark import FileCapture
     fileCapture = FileCapture(filepath, **kwargs)
     iterator = iter(fileCapture)
     while True:
@@ -105,7 +104,7 @@ def pcap2generatorPyshark(
             packet = next(iterator)
             packet = castTo(packet)
             yield packet
-        except StopIteration:
+        except (StopIteration, EOFError):
             fileCapture.close()
             break
 
@@ -119,6 +118,10 @@ def pcap2packetsScapy(
         ] = AbstractPacket,
         **kwargs,
 ):
+    import logging
+    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+    from scapy.all import PcapReader
+
     reader = PcapReader(filepath, **kwargs)
     packets = []
     while nPackets != 0:
@@ -141,6 +144,10 @@ def pcap2generatorScapy(
         ] = AbstractPacket,
         **kwargs,
 ):
+    import logging
+    logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+    from scapy.all import PcapReader
+
     reader = PcapReader(filepath, **kwargs)
     while True:
         try:

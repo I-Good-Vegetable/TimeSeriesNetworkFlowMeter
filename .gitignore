@@ -2,6 +2,9 @@
 Data/
 Logs/
 Test*.py
+Pipfile
+Pipfile.lock
+
 
 # Created by .ignore support plugin (hsz.mobi)
 ### Python template

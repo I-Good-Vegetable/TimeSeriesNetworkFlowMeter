@@ -66,7 +66,7 @@ def flowGeneratorBase(
         )
         if not checkSessionKeyInfo(fski):
             droppedPackets += 1
-            logger.warning(f'A packet has been dropped: {pSessionKey(packet)}')
+            # logger.warning(f'A packet has been dropped: {pSessionKey(packet)}')
             continue
         if fsk in aliveFlows:
             try:
@@ -473,7 +473,7 @@ def pcaps2timeSeriesDatasets(
         indexFilename='Index.csv',
         featureFilename='Features.npz',
         **kwargs4pcap2generator
-) -> (Dict[str, TimeSeriesFeatureSet], List[str]):
+):
     from pathlib import Path
     pcapFolder = Path(pcapFolder)
     assert pcapFolder.exists(), f'{pcapFolder} does not exist'
@@ -488,14 +488,14 @@ def pcaps2timeSeriesDatasets(
     assert outputMode in ['PcapNameAsPrefix', 'IndividualFolders'], \
         f'outputMode incorrect ({outputMode})'
 
-    tsFeatureSetDict: Dict[str, TimeSeriesFeatureSet] = dict()
-    failedFiles = list()
-    for pcapFile in pBar(pcapFiles, description='Converting......'):
-        logger.info(f'Processing {pcapFile}')
+    nFailed = 0
+    # for pcapFile in pBar(pcapFiles, description='Converting......'):
+    for index, pcapFile in enumerate(pcapFiles):
+        logger.info(f'Processing {pcapFile} ({index+1}/{len(pcapFiles)})')
         tmpOutputFolder = outputFolder / pcapFile.stem if outputMode == 'IndividualFolders' \
             else outputFolder
         try:
-            tsFeatureSet = pcap2timeSeriesDataset(
+            pcap2timeSeriesDataset(
                 pcapFile,
                 tmpOutputFolder,
                 castTo,
@@ -516,18 +516,14 @@ def pcaps2timeSeriesDatasets(
                 **kwargs4pcap2generator,
             )
         except Exception as e:
-            failedFiles.append(str(pcapFile))
+            nFailed += 1
             logger.error(f'{pcapFile} cannot be processed \n {e}')
         else:
-            tsFeatureSetDict[str(pcapFile)] = tsFeatureSet
             logger.success(f'{pcapFile} has been processed')
 
-    nFailed = len(failedFiles)
     nSucceed = nPcap - nFailed
     logger.info(f'All PCAP files ({nPcap}) in {pcapFolder} have been processed')
     if nSucceed != 0:
         logger.success(f'{nSucceed}/{nPcap} are succeed')
     if nFailed != 0:
         logger.error(f'{nFailed}/{nPcap} are failed')
-
-    return tsFeatureSetDict, failedFiles
