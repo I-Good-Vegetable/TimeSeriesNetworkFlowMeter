@@ -33,7 +33,30 @@ class AbstractPacketBase:
         ])
 
     def _getProtocol(self, packet):
-        raise NotImplementedError
+        protocol = None
+        protocols = {
+            # 3rd layer (de facto)
+            'TCP': 'TCP',
+            'UDP': 'UDP',
+            # 'ICMP': 'ICMP',
+            # 'IGMP': 'IGMP',
+            # 'ICMPV6': 'ICMPv6',
+
+            # 2nd layer
+            # 'IPV6': 'IPv6',
+            'IP': 'IP',
+            'ARP': 'APR',
+            # 'LLC': 'LLC',
+            # 'LLDP': 'LLDP',
+
+            # 1st layer
+            # 'ETH': 'Ether',
+        }
+        for p, pName in protocols.items():
+            if p in packet:
+                protocol = pName
+                break
+        return protocol
 
     def getProtocol(self):
         """
@@ -126,36 +149,13 @@ class AbstractPacketBase:
         ]
 
     def getTcpFlag(self, flagName) -> int:
-        return self._tcpFlags[flagName]
+        flag = 0
+        if flagName in self._tcpFlags:
+            flag = self._tcpFlags[flagName]
+        return flag
 
 
 class AbstractPacketPyshark(AbstractPacketBase):
-
-    def _getProtocol(self, packet):
-        protocol = None
-        protocols = {
-            # 3rd layer (de facto)
-            'TCP': 'TCP',
-            'UDP': 'UDP',
-            # 'ICMP': 'ICMP',
-            # 'IGMP': 'IGMP',
-            # 'ICMPV6': 'ICMPv6',
-
-            # 2nd layer
-            # 'IPV6': 'IPv6',
-            'IP': 'IP',
-            'ARP': 'APR',
-            # 'LLC': 'LLC',
-            # 'LLDP': 'LLDP',
-
-            # 1st layer
-            # 'ETH': 'Ether',
-        }
-        for p, pName in protocols.items():
-            if p in packet:
-                protocol = pName
-                break
-        return protocol
 
     def _getSrcIp(self, packet):
         srcIp = None
@@ -230,35 +230,77 @@ class AbstractPacketPyshark(AbstractPacketBase):
 
 class AbstractPacketScapy(AbstractPacketBase):
 
-    def _getProtocol(self, packet):
-        pass
-
     def _getSrcIp(self, packet):
-        pass
+        sip = None
+        if 'IP' in packet:
+            sip = packet['IP'].src
+        elif 'IPv6' in packet:
+            sip = packet['IPv6'].src
+        return sip
 
     def _getSrcPort(self, packet):
-        pass
+        srcPort = None
+        if 'TCP' in packet:
+            srcPort = packet['TCP'].sport
+        elif 'UDP' in packet:
+            srcPort = packet['UDP'].sport
+        return srcPort
 
     def _getDstIp(self, packet):
-        pass
+        dip = None
+        if 'IP' in packet:
+            dip = packet['IP'].dst
+        elif 'IPv6' in packet:
+            dip = packet['IPv6'].dst
+        return dip
 
     def _getDstPort(self, packet):
-        pass
+        dstPort = None
+        if 'TCP' in packet:
+            dstPort = packet['TCP'].dport
+        elif 'UDP' in packet:
+            dstPort = packet['UDP'].dport
+        return dstPort
 
     def _getSrcMac(self, packet):
-        pass
+        srcMac = None
+        if hasattr(packet, 'src'):
+            srcMac = packet.src
+        return srcMac
 
     def _getDstMac(self, packet):
-        pass
+        dstMac = None
+        if hasattr(packet, 'dst'):
+            dstMac = packet.dst
+        return dstMac
 
     def _getTs(self, packet):
-        pass
+        return float(packet.time)
 
     def _getLen(self, packet):
-        pass
+        return len(packet)
+
+    _flagAbbrDict = {
+        'Ack': 'A',
+        'Cwr': 'C',
+        'Ecn': 'E',
+        'Fin': 'F',
+        # NS Flag: Experimental, and May Not be Useful
+        'Ns': 'N',
+        'Push': 'P',
+        'Res': None,
+        'Reset': 'R',
+        'Syn': 'S',
+        'Urg': 'U',
+    }
 
     def _getTcpFlags(self, packet):
-        pass
+        flags = {
+            flagName: int(flagAbbr in packet['TCP'].flags)
+            if 'TCP' in packet else 0
+            for flagName, flagAbbr in self._flagAbbrDict.items()
+        }
+        return flags
 
 
 def AbstractPacket(p) -> AbstractPacketBase:

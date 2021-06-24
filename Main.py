@@ -1,8 +1,6 @@
 import sys
-from pathlib import Path
 
 from JasonUtils.TicToc import timing
-from scapy.utils import rdpcap
 
 from TimeSeriesNetworkFlowMeter.NetworkBackend import backend
 from TimeSeriesNetworkFlowMeter.NetworkFlowMeter import pcaps2timeSeriesDatasets
@@ -23,7 +21,6 @@ def main():
         outputFolder = input(f'Output Folder Path: ')
     # pcaps2timeSeriesDatasets(pcapFolder, outputFolder, keep_packets=False)
     pcaps2timeSeriesDatasets(pcapFolder, outputFolder)
-    rdpcap
 
 
 if __name__ == '__main__':
