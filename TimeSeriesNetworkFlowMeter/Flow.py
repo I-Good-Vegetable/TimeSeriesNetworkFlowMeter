@@ -4,6 +4,7 @@ from TimeSeriesNetworkFlowMeter.AbstractPacket import AbstractPacketBase
 from TimeSeriesNetworkFlowMeter.Config import getConfig
 from TimeSeriesNetworkFlowMeter.Session import Forward, Backward, pDirection, EmptySessionKey, EmptySessionKeyInfo
 from TimeSeriesNetworkFlowMeter.Typing import FlowSessionKeyInfo, AbstractPacketList
+from TimeSeriesNetworkFlowMeter.Log import logger
 
 DefaultFlowTimeout = float(getConfig().get('Flow', 'timeout'))
 DefaultSubFlowLen = int(getConfig().get('Flow', 'sub flow len'))
@@ -448,6 +449,12 @@ class TimeSeriesFlow(FlowBase):
         raise TimeSeriesFlowTimeout(self._tmpSubFlow, self, True)
 
     def add(self, packet: AbstractPacketBase, direction=None):
+        if packet.getTs() < self.initTs:
+            logger.warning(f'The packet ({packet}) is not sequential. '
+                           f'It has been dropped\n'
+                           f'Packet Ts = {packet.getTs()}; '
+                           f'Flow Init Ts = {self.initTs}')
+            return
 
         if self.isTimeout(packet):
             self._subFlows[self._tmpIndex] = self._tmpSubFlow
@@ -456,6 +463,7 @@ class TimeSeriesFlow(FlowBase):
         self._lastPacket = packet
 
         subFlowIndex = self.generateSubFlowIndex(packet)
+
         if subFlowIndex == self._tmpIndex:
             self._tmpSubFlow.add(packet, direction)
         elif subFlowIndex > self._tmpIndex:
@@ -472,7 +480,9 @@ class TimeSeriesFlow(FlowBase):
             raise TimeSeriesFlowTimeout(oldSubFlow, self, False)
         else:
             raise ValueError(f'Please notice the packet\'s order. '
-                             f'Index ({subFlowIndex}) is negative')
+                             f'Index ({subFlowIndex}) is negative. \n'
+                             f'Packet Ts = {packet.getTs()}; '
+                             f'Flow Init Ts = {self.initTs}')
 
 
 # The Empty Flow is used for Feature Extractors

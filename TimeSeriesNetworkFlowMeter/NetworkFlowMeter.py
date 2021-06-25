@@ -418,6 +418,7 @@ def pcap2timeSeriesDataset(
     outputFolder = pcapFile.parent if outputFolder is None \
         else Path(outputFolder)
 
+    logger.info(f'Extracting Time Series Features from {pcapFile}')
     tsFeatureSet = packets2timeSeriesFeatureSets(
         pcap2generator(
             str(pcapFile),
@@ -433,7 +434,9 @@ def pcap2timeSeriesDataset(
         returnSortedFeatureSet,
         sortFeatureAccordingTo,
     )
+    logger.success(f'{pcapFile}`s Time Series Features Extracted')
 
+    logger.info(f'Saving Time Series Features to {outputFolder}')
     saveTimeSeriesFeatureSet(
         outputFolder,
         tsFeatureSet,
@@ -443,6 +446,7 @@ def pcap2timeSeriesDataset(
         indexFilename,
         featureFilename,
     )
+    logger.success(f'Time Series Features Saved to {outputFolder}')
     return tsFeatureSet
 
 
@@ -518,6 +522,7 @@ def pcaps2timeSeriesDatasets(
         except Exception as e:
             nFailed += 1
             logger.error(f'{pcapFile} cannot be processed \n {e}')
+            raise e
         else:
             logger.success(f'{pcapFile} has been processed')
 
