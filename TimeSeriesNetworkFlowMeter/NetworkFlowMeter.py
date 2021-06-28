@@ -9,11 +9,11 @@ from TimeSeriesNetworkFlowMeter.Flow import Flow, FlowTimeout, TimeSeriesFlow, T
     FlowBase
 from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.PCAP import pcap2generator
-from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionKeyInfo, pSessionKey
+from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionKeyInfo
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, FlowSessionKeyInfo, TimeSeriesFeatureSet, \
     TimeSeriesFeature
 from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, sortTimeSeriesFeatureSet, featureSet2csv, mkdir, \
-    saveTimeSeriesFeatureSet, pBar
+    saveTimeSeriesFeatureSet
 
 
 def checkFeatureExtractorManager(

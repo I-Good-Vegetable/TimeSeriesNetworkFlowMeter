@@ -9,7 +9,6 @@ from scipy.sparse import csr_matrix, save_npz
 from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, TimeSeriesFeatureSet, TimeSeriesFeature
 
-
 pBar = track
 
 
@@ -19,6 +18,9 @@ def s2us(s):
 
 def us2s(us):
     return us * (10 ** -6)
+
+
+
 
 
 def returnArray(

@@ -1,6 +1,22 @@
+from datetime import datetime
 from typing import List
 
+import pytz
+
+from TimeSeriesNetworkFlowMeter.Config import getConfig
 from TimeSeriesNetworkFlowMeter.NetworkBackend import getBackend
+
+
+def checkTimezone(tz):
+    return pytz.timezone(tz)
+
+
+def ts2datetime(ts, tz):
+    return datetime.fromtimestamp(ts, tz)
+
+
+DefaultTimezone = getConfig().get('Packet', 'timezone')
+DefaultTimezone = checkTimezone(DefaultTimezone)
 
 
 class AbstractPacketBase:
@@ -9,6 +25,16 @@ class AbstractPacketBase:
     in case some subclasses inherit from backend's Packet,
     preventing name collision
     """
+
+    _timezone = DefaultTimezone
+
+    @classmethod
+    def getTimezone(cls):
+        return cls._timezone
+
+    @classmethod
+    def setTimezone(cls, tz: str):
+        cls._timezone = checkTimezone(tz)
 
     def __init__(self, packet):
         self._protocol = self._getProtocol(packet)
@@ -113,8 +139,7 @@ class AbstractPacketBase:
         return self._ts
 
     def getTsDatetime(self):
-        from pandas import to_datetime
-        return to_datetime(self.getTs(), unit='s')
+        return ts2datetime(self.getTs(), self.getTimezone())
 
     def getTsReadable(self, tsFormat=None):
         ts = self.getTsDatetime()
