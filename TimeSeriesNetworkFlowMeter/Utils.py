@@ -20,9 +20,6 @@ def us2s(us):
     return us * (10 ** -6)
 
 
-
-
-
 def returnArray(
         array,
         returnType: Union[type, Callable] = tuple
@@ -65,6 +62,12 @@ def mkdir(*, filepath=None, folder=None):
     else:
         folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
+
+
+def checkFiles(files: Iterable):
+    for file in files:
+        if not Path(file).is_file():
+            raise ValueError(f'{file} is not a valid filepath')
 
 
 def arrays2csv(filepath, *arrays):
