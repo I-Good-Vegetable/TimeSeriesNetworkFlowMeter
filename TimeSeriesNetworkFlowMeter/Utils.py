@@ -174,6 +174,16 @@ def sortFeatureDf(featureDf, accordingTo='Ts'):
     return featureDf
 
 
+def findPcapFiles(pcapFolder, recursively):
+    pcapFolder = Path(pcapFolder)
+    assert pcapFolder.exists(), f'{pcapFolder} does not exist'
+    logger.info(f'Enter {pcapFolder}')
+    pattern = f'*.[pP][cC][aA][pP]'
+    pcapFiles = list(pcapFolder.rglob(pattern)) if recursively \
+        else pcapFolder.glob(pattern)
+    return pcapFiles
+
+
 def featureSet2csv(
         filepath,
         featureSet

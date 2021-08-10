@@ -13,7 +13,7 @@ from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionK
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, FlowSessionKeyInfo, TimeSeriesFeatureSet, \
     TimeSeriesFeature
 from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, sortTimeSeriesFeatureSet, featureSet2csv, mkdir, \
-    saveTimeSeriesFeatureSet
+    saveTimeSeriesFeatureSet, findPcapFiles
 
 
 def checkFeatureExtractorManager(
@@ -230,26 +230,20 @@ def pcaps2csvs(
         returnSortedFeatureSet=True,
         sortFeatureAccordingTo='Ts',
         **kwargs4pcap2generator,
-) -> (Dict[str, FeatureSet], List[str]):
+):
     from pathlib import Path
-    pcapFolder = Path(pcapFolder)
-    assert pcapFolder.exists(), f'{pcapFolder} does not exist'
-    logger.info(f'Enter {pcapFolder}')
-    pattern = f'*.[pP][cC][aA][pP]'
-    pcapFiles = list(pcapFolder.rglob(pattern)) if recursively \
-        else pcapFolder.glob(pattern)
+    pcapFiles = findPcapFiles(pcapFolder, recursively)
     nPcap = len(pcapFiles)
     logger.info(f'{nPcap} PCAP files are found')
 
     csvFolder = pcapFolder if csvFolder is None else Path(csvFolder)
 
-    featureSetDict: Dict[str, FeatureSet] = dict()
-    failedFiles = list()
+    nFailed = 0
     for pcapFile in pcapFiles:
         logger.info(f'Processing {pcapFile}')
-        csvFile = (csvFolder / pcapFile.stem).with_suffix('.csv')
+        csvFile = (csvFolder / pcapFile.name).with_suffix('.csv')
         try:
-            featureSet = pcap2csv(
+            pcap2csv(
                 str(pcapFile),
                 str(csvFile),
                 castTo,
@@ -263,21 +257,17 @@ def pcaps2csvs(
                 **kwargs4pcap2generator,
             )
         except Exception as e:
-            failedFiles.append(str(pcapFile))
+            nFailed += 1
             logger.error(f'{pcapFile} cannot be processed \n {e}')
         else:
-            featureSetDict[str(pcapFile)] = featureSet
             logger.success(f'{pcapFile} has been processed')
 
-    nFailed = len(failedFiles)
     nSucceed = nPcap - nFailed
     logger.info(f'All PCAP files ({nPcap}) in {pcapFolder} have been processed')
     if nSucceed != 0:
         logger.success(f'{nSucceed}/{nPcap} are succeed')
     if nFailed != 0:
         logger.error(f'{nFailed}/{nPcap} are failed')
-
-    return featureSetDict, failedFiles
 
 
 def timeSeriesFlowGenerator(
@@ -479,12 +469,7 @@ def pcaps2timeSeriesDatasets(
         **kwargs4pcap2generator
 ):
     from pathlib import Path
-    pcapFolder = Path(pcapFolder)
-    assert pcapFolder.exists(), f'{pcapFolder} does not exist'
-    logger.info(f'Enter {pcapFolder}')
-    pattern = f'*.[pP][cC][aA][pP]'
-    pcapFiles = list(pcapFolder.rglob(pattern)) if recursively \
-        else pcapFolder.glob(pattern)
+    pcapFiles = findPcapFiles(pcapFolder, recursively)
     nPcap = len(pcapFiles)
     logger.info(f'{nPcap} PCAP files are found')
     outputFolder = pcapFolder if outputFolder is None \
