@@ -58,7 +58,7 @@ class AbstractPacketBase:
             str(self.getTs())
         ])
 
-    def _getProtocol(self, packet):
+    def _getProtocol(self, packet):  # noqa
         protocol = None
         protocols = {
             # 3rd layer (de facto)
@@ -70,8 +70,8 @@ class AbstractPacketBase:
 
             # 2nd layer
             # 'IPV6': 'IPv6',
-            'IP': 'IP',
-            'ARP': 'APR',
+            # 'IP': 'IP',
+            # 'ARP': 'APR',
             # 'LLC': 'LLC',
             # 'LLDP': 'LLDP',
 

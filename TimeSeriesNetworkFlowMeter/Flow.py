@@ -32,7 +32,7 @@ class FlowTimeout(FlowTimeoutBase):
 
     def __init__(self, flow):
         self.flow: Flow = flow
-        super(FlowTimeout, self).__init__()
+        super(FlowTimeout, self).__init__(complete=True)
 
 
 class TimeSeriesFlowTimeout(FlowTimeoutBase):
@@ -99,30 +99,17 @@ class FlowBase:
     def sessionKey(self):
         return self._fsk
 
-    @sessionKey.setter
-    def sessionKey(self, value):
-        raise Exception(f'Cannot set session key '
-                        f'once the flow is initialized')
-
     @property
     def initTs(self):
         if self._initPacket is None:
             raise Exception(f'Flow\'s first packet is None')
         return self._initPacket.getTs()
 
-    @initTs.setter
-    def initTs(self, ts):
-        raise Exception(f'Cannot set initTs')
-
     @property
     def initTsDatetime(self):
         if self._initPacket is None:
             raise Exception(f'Flow\'s first packet is None')
         return self._initPacket.getTsDatetime()
-
-    @initTsDatetime.setter
-    def initTsDatetime(self, datetime):
-        raise Exception(f'Cannot set initTsDatetime')
 
     def initTsReadable(self, tsFormat=None):
         if self._initPacket is None:
@@ -135,19 +122,11 @@ class FlowBase:
             raise Exception(f'Flow\'s last packet is None')
         return self._lastPacket.getTs()
 
-    @lastTs.setter
-    def lastTs(self, ts):
-        raise Exception(f'Cannot set initTs')
-
     @property
     def lastTsDatetime(self):
         if self._lastPacket is None:
             raise Exception(f'Flow\'s last packet is None')
         return self._lastPacket.getTsDatetime()
-
-    @lastTsDatetime.setter
-    def lastTsDatetime(self, datetime):
-        raise Exception(f'Cannot set initTsDatetime')
 
     def lastTsReadable(self, tsFormat=None):
         if self._lastPacket is None:
@@ -158,20 +137,12 @@ class FlowBase:
     def duration(self):
         return self.lastTs - self.initTs
 
-    @duration.setter
-    def duration(self, d):
-        raise Exception(f'Cannot set duration')
-
     @property
     def protocol(self):
         p = None
         if self._fski is not None:
             p, _, _, _, _ = self._fski
         return p
-
-    @protocol.setter
-    def protocol(self, p):
-        raise Exception(f'Cannot set protocol')
 
     @property
     def srcIp(self):
@@ -180,20 +151,12 @@ class FlowBase:
             _, sip, _, _, _ = self._fski
         return sip
 
-    @srcIp.setter
-    def srcIp(self, sip):
-        raise Exception(f'Cannot set src ip')
-
     @property
     def srcPort(self):
         sport = None
         if self._fski is not None:
             _, _, sport, _, _ = self._fski
         return sport
-
-    @srcPort.setter
-    def srcPort(self, sport):
-        raise Exception(f'Cannot set src port')
 
     @property
     def dstIp(self):
@@ -202,20 +165,12 @@ class FlowBase:
             _, _, _, dip, _ = self._fski
         return dip
 
-    @dstIp.setter
-    def dstIp(self, dip):
-        raise Exception(f'Cannot set dst ip')
-
     @property
     def dstPort(self):
         dport = None
         if self._fski is not None:
             _, _, _, _, dport = self._fski
         return dport
-
-    @dstPort.setter
-    def dstPort(self, dport):
-        raise Exception(f'Cannot set dst port')
 
     def isTimeout(
             self,

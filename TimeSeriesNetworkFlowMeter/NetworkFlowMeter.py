@@ -1,9 +1,9 @@
-from typing import Iterable, Optional, Callable, Any, List, Union, Dict, Type, Tuple
+from typing import Iterable, Optional, Callable, Any, List, Union, Dict, Type, Tuple, TypeVar
 
 from TimeSeriesNetworkFlowMeter.AbstractPacket import AbstractPacketBase, AbstractPacket
 from TimeSeriesNetworkFlowMeter.Features.BasicFlowInfo import BasicFlowInfo
 from TimeSeriesNetworkFlowMeter.Features.Feature import FeatureExtractor, getAllBuildInFeatureExtractorManager, \
-    getBuildInFeatureExtractorManager
+    getBuildInFeatureExtractorManager, extractFeatureSetFromFlowPackets
 from TimeSeriesNetworkFlowMeter.Features.Feature import FeatureExtractorManager
 from TimeSeriesNetworkFlowMeter.Flow import Flow, FlowTimeout, TimeSeriesFlow, TimeSeriesFlowTimeout, FlowTimeoutBase, \
     FlowBase
@@ -11,9 +11,30 @@ from TimeSeriesNetworkFlowMeter.Log import logger
 from TimeSeriesNetworkFlowMeter.PCAP import pcap2generator
 from TimeSeriesNetworkFlowMeter.Session import FlowSessionManager, checkSessionKeyInfo
 from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, FlowSessionKeyInfo, TimeSeriesFeatureSet, \
-    TimeSeriesFeature
-from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, sortTimeSeriesFeatureSet, featureSet2csv, mkdir, \
-    saveTimeSeriesFeatureSet, findPcapFiles
+    TimeSeriesFeature, PacketTimeSeriesFeatureSet, PacketTimeSeriesFeature
+from TimeSeriesNetworkFlowMeter.Utils import sortFeatureSet, sortTimeSeriesFeatureSetLike, featureSet2csv, mkdir, \
+    saveTimeSeriesFeatureSet, findPcapFiles, savePacketTimeSeriesFeatureSet
+
+FlowLike = TypeVar(
+    'FlowLike',
+    Callable[
+        [str, FlowSessionKeyInfo, AbstractPacketBase, Any],
+        Any,
+    ],
+    Type[FlowBase],
+)
+
+
+def logResults(pcapFolder, nPcap=None, nSucceed=None, nFailed=None):
+    assert sum([x is None for x in [nPcap, nSucceed, nFailed]]) <= 1
+    nPcap = nSucceed + nFailed if nPcap is None else nPcap
+    nSucceed = nPcap - nFailed if nSucceed is None else nSucceed
+    nFailed = nPcap - nSucceed if nFailed is None else nFailed
+    logger.info(f'All PCAP files ({nPcap}) in {pcapFolder} have been processed')
+    if nSucceed != 0:
+        logger.success(f'{nSucceed}/{nPcap} are succeed')
+    if nFailed != 0:
+        logger.error(f'{nFailed}/{nPcap} are failed')
 
 
 def checkFeatureExtractorManager(
@@ -42,14 +63,7 @@ def checkFeatureExtractorManager(
 
 
 def flowGeneratorBase(
-        FlowType: Union[
-            Type[Flow],
-            Type[TimeSeriesFlow],
-            Callable[[
-                         str, FlowSessionKeyInfo, AbstractPacketBase, Any
-                     ], Any],
-            Type[FlowBase],
-        ],
+        FlowType: FlowLike,
         packets: Iterable[AbstractPacketBase],
         flowSessionManager: FlowSessionManager = None,
 ):
@@ -95,11 +109,40 @@ def flowGeneratorBase(
                        f'({droppedPackets / totalPackets:.2%})')
 
 
+def pcaps2datasetsGenerator(
+        pcapFolder,
+        outputFolder=None,
+        recursively=True,
+        ignoreExceptions=False,
+):
+    from pathlib import Path
+    pcapFiles = findPcapFiles(pcapFolder, recursively)
+    nPcap = len(pcapFiles)
+    logger.info(f'{nPcap} PCAP files are found')
+    outputFolder = pcapFolder if outputFolder is None \
+        else Path(outputFolder)
+
+    nSucceed = 0
+    for index, pcapFile in enumerate(pcapFiles):
+        try:
+            yield index, pcapFile, outputFolder
+        except Exception as e:
+            logger.error(f'{pcapFile} cannot be processed \n {e}')
+            if not ignoreExceptions:
+                raise e
+        else:
+            nSucceed += 1
+            logger.success(f'{pcapFile} has been processed')
+
+    logResults(pcapFolder, nPcap=nPcap, nSucceed=nSucceed)
+
+
 def flowGenerator(
         packets: Iterable[AbstractPacketBase],
         flowSessionManager: FlowSessionManager = None,
-) -> Iterable[Flow]:
-    for e in flowGeneratorBase(Flow, packets, flowSessionManager):
+        FlowType: FlowLike = Flow,
+) -> Iterable[FlowLike]:
+    for e in flowGeneratorBase(FlowType, packets, flowSessionManager):
         e: FlowTimeout
         flow = e.flow
         yield flow
@@ -115,7 +158,7 @@ def packets2flows(
     if flowTimeout is not None:
         Flow.setTimeout(flowTimeout)
 
-    flows = list()
+    flows: List[Flow] = list()
     for flow in flowGenerator(
             packets,
             flowSessionManager,
@@ -212,7 +255,7 @@ def pcap2csv(
 
 def pcaps2csvs(
         pcapFolder,
-        csvFolder=None,
+        outputFolder=None,
         recursively=True,
         castTo: Union[
             Type[AbstractPacketBase],
@@ -231,17 +274,9 @@ def pcaps2csvs(
         sortFeatureAccordingTo='Ts',
         **kwargs4pcap2generator,
 ):
-    from pathlib import Path
-    pcapFiles = findPcapFiles(pcapFolder, recursively)
-    nPcap = len(pcapFiles)
-    logger.info(f'{nPcap} PCAP files are found')
-
-    csvFolder = pcapFolder if csvFolder is None else Path(csvFolder)
-
-    nFailed = 0
-    for pcapFile in pcapFiles:
-        logger.info(f'Processing {pcapFile}')
-        csvFile = (csvFolder / pcapFile.name).with_suffix('.csv')
+    g = pcaps2datasetsGenerator(pcapFolder, outputFolder, recursively, ignoreExceptions)
+    for index, pcapFile, outputFolder in g:
+        csvFile = (outputFolder / pcapFile.name).with_suffix('.csv')
         try:
             pcap2csv(
                 str(pcapFile),
@@ -257,17 +292,7 @@ def pcaps2csvs(
                 **kwargs4pcap2generator,
             )
         except Exception as e:
-            nFailed += 1
-            logger.error(f'{pcapFile} cannot be processed \n {e}')
-        else:
-            logger.success(f'{pcapFile} has been processed')
-
-    nSucceed = nPcap - nFailed
-    logger.info(f'All PCAP files ({nPcap}) in {pcapFolder} have been processed')
-    if nSucceed != 0:
-        logger.success(f'{nSucceed}/{nPcap} are succeed')
-    if nFailed != 0:
-        logger.error(f'{nFailed}/{nPcap} are failed')
+            g.throw(e)
 
 
 def timeSeriesFlowGenerator(
@@ -370,10 +395,7 @@ def packets2timeSeriesFeatureSets(
         )
         tsFeatureSet.append(tsFeature)
     if returnSortedFeatureSet:
-        tsFeatureSet = sortTimeSeriesFeatureSet(
-            tsFeatureSet,
-            sortFeatureAccordingTo,
-        )
+        tsFeatureSet = sortTimeSeriesFeatureSetLike(tsFeatureSet, sortFeatureAccordingTo)
     return tsFeatureSet
 
 
@@ -468,19 +490,11 @@ def pcaps2timeSeriesDatasets(
         featureFilename='Features.npz',
         **kwargs4pcap2generator
 ):
-    from pathlib import Path
-    pcapFiles = findPcapFiles(pcapFolder, recursively)
-    nPcap = len(pcapFiles)
-    logger.info(f'{nPcap} PCAP files are found')
-    outputFolder = pcapFolder if outputFolder is None \
-        else Path(outputFolder)
     assert outputMode in ['PcapNameAsPrefix', 'IndividualFolders'], \
         f'outputMode incorrect ({outputMode})'
 
-    nFailed = 0
-    # for pcapFile in pBar(pcapFiles, description='Converting......'):
-    for index, pcapFile in enumerate(pcapFiles):
-        logger.info(f'Processing {pcapFile} ({index+1}/{len(pcapFiles)})')
+    g = pcaps2datasetsGenerator(pcapFolder, outputFolder, recursively, False)
+    for index, pcapFile, outputFolder in g:
         tmpOutputFolder = outputFolder / pcapFile.stem if outputMode == 'IndividualFolders' \
             else outputFolder
         try:
@@ -505,15 +519,123 @@ def pcaps2timeSeriesDatasets(
                 **kwargs4pcap2generator,
             )
         except Exception as e:
-            nFailed += 1
-            logger.error(f'{pcapFile} cannot be processed \n {e}')
-            raise e
-        else:
-            logger.success(f'{pcapFile} has been processed')
+            g.throw(e)
 
-    nSucceed = nPcap - nFailed
-    logger.info(f'All PCAP files ({nPcap}) in {pcapFolder} have been processed')
-    if nSucceed != 0:
-        logger.success(f'{nSucceed}/{nPcap} are succeed')
-    if nFailed != 0:
-        logger.error(f'{nFailed}/{nPcap} are failed')
+
+def packets2packetTimeSeriesFeatureSets(
+        packets: Iterable[AbstractPacketBase],
+        flowSessionManager: FlowSessionManager = None,
+        flowTimeout=None,
+        basicInfoExtractor: FeatureExtractor = None,
+        returnSorted=True,
+        sortAccordingTo='Ts',
+) -> PacketTimeSeriesFeatureSet:
+    if flowTimeout is not None:
+        Flow.setTimeout(flowTimeout)
+    if basicInfoExtractor is None:
+        basicInfoExtractor = BasicFlowInfo()
+
+    ptsFeatureSet: PacketTimeSeriesFeatureSet = list()
+    for flow in flowGenerator(packets, flowSessionManager):
+        ptsBasicInfo = basicInfoExtractor.extract(flow)
+        packetsFeatureSet = extractFeatureSetFromFlowPackets(flow)
+        ptsFeature: PacketTimeSeriesFeature = (
+            ptsBasicInfo,
+            packetsFeatureSet,
+        )
+        ptsFeatureSet.append(ptsFeature)
+    if returnSorted:
+        ptsFeatureSet = sortTimeSeriesFeatureSetLike(
+            ptsFeatureSet, sortAccordingTo
+        )
+    return ptsFeatureSet
+
+
+def pcap2packetTimeSeriesDataset(
+        pcapFile,
+        outputFolder=None,
+        castTo: Union[
+            Type[AbstractPacketBase],
+            Callable
+        ] = AbstractPacket,
+        flowSessionManager: FlowSessionManager = None,
+        flowTimeout=None,
+        basicInfoExtractor: FeatureExtractor = None,
+        returnSorted=True,
+        sortAccordingTo='Ts',
+        indexFilename='Index.csv',
+        featureFilename='Features.pkl',
+        **kwargs4pcap2generator
+):
+    from pathlib import Path
+    pcapFile = Path(pcapFile)
+    assert pcapFile.exists(), f'{pcapFile} does not exist'
+    outputFolder = pcapFile.parent if outputFolder is None \
+        else Path(outputFolder)
+
+    logger.info(f'Extracting Packet-based Time Series Features from {pcapFile}')
+    ptsFeatureSet = packets2packetTimeSeriesFeatureSets(
+        pcap2generator(
+            str(pcapFile),
+            castTo,
+            **kwargs4pcap2generator,
+        ),
+        flowSessionManager,
+        flowTimeout,
+        basicInfoExtractor,
+        returnSorted,
+        sortAccordingTo,
+    )
+    savePacketTimeSeriesFeatureSet(
+        outputFolder,
+        ptsFeatureSet,
+        indexFilename,
+        featureFilename
+    )
+
+
+def pcaps2packetTimeSeriesDatasets(
+        pcapFolder,
+        outputFolder=None,
+        recursively=True,
+        ignoreExceptions=True,
+        outputMode='PcapNameAsPrefix',
+        delimiter='_',
+        castTo: Union[
+            Type[AbstractPacketBase],
+            Callable
+        ] = AbstractPacket,
+        flowSessionManager: FlowSessionManager = None,
+        flowTimeout=None,
+        basicInfoExtractor: FeatureExtractor = None,
+        returnSorted=True,
+        sortAccordingTo='Ts',
+        indexFilename='Index.csv',
+        featureFilename='Features.pkl',
+        **kwargs4pcap2generator
+):
+    assert outputMode in ['PcapNameAsPrefix', 'IndividualFolders'], \
+        f'outputMode incorrect ({outputMode})'
+
+    g = pcaps2datasetsGenerator(pcapFolder, outputFolder, recursively, ignoreExceptions)
+    for index, pcapFile, outputFolder in g:
+        tmpOutputFolder = outputFolder / pcapFile.stem if outputMode == 'IndividualFolders' \
+            else outputFolder
+        try:
+            pcap2packetTimeSeriesDataset(
+                pcapFile,
+                tmpOutputFolder,
+                castTo,
+                flowSessionManager,
+                flowTimeout,
+                basicInfoExtractor,
+                returnSorted,
+                sortAccordingTo,
+                pcapFile.stem + delimiter + indexFilename
+                if outputMode == 'PcapNameAsPrefix' else indexFilename,
+                pcapFile.stem + delimiter + featureFilename
+                if outputMode == 'PcapNameAsPrefix' else featureFilename,
+                **kwargs4pcap2generator,
+            )
+        except Exception as e:
+            g.throw(e)

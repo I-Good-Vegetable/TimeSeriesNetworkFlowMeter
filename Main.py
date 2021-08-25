@@ -7,8 +7,8 @@ from TimeSeriesNetworkFlowMeter.NetworkFlowMeter import pcaps2timeSeriesDatasets
 def main():
     # pcapFolder = '/Users/jinliu/Desktop/CICIDS2017/PCAPs'
     # outputFolder = '/Users/jinliu/Desktop/CICIDS2017/TimeSeries'
-    pcapFolder = 'E:\CICIDS2018\Friday-02-03-2018-pcap\pcap'
-    outputFolder = 'E:\CICIDS2018\Friday-02-03-2018-pcap\csv'
+    pcapFolder = r'E:\CICIDS2018\Friday-02-03-2018-pcap\pcap'
+    outputFolder = r'E:\CICIDS2018\Friday-02-03-2018-pcap\csv'
     if len(sys.argv) > 1:
         assert len(sys.argv) == 3, \
             f'Invalid format: {sys.argv}. python main.py PCAP_Folder Output_Folder'

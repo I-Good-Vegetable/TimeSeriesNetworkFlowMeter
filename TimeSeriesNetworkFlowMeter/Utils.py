@@ -1,5 +1,6 @@
+import pickle
 from pathlib import Path
-from typing import Union, Callable, Iterable, Dict, Collection, Optional, Any
+from typing import Union, Callable, Iterable, Dict, Collection, Optional, Any, TypeVar
 
 import numpy as np
 from numpy import savez_compressed
@@ -7,7 +8,8 @@ from rich.progress import track
 from scipy.sparse import csr_matrix, save_npz
 
 from TimeSeriesNetworkFlowMeter.Log import logger
-from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, TimeSeriesFeatureSet, TimeSeriesFeature
+from TimeSeriesNetworkFlowMeter.Typing import FeatureSet, Features, TimeSeriesFeatureSet, TimeSeriesFeature, \
+    TimeSeriesFeatureSetLike, TimeSeriesFeatureLike, PacketTimeSeriesFeatureSet
 
 pBar = track
 
@@ -132,19 +134,19 @@ def features2series(features: Features):
     return pd.Series(features)
 
 
-def featureSet2mat(
+def featureSet2ndarray(
         featureSet: FeatureSet,
         returnFeatureNames: True,
 ):
-    mat = np.array(
+    array = np.array(
         [list(features.values())
          for features in featureSet]
     )
-    names = np.array(list(featureSet[0].keys()))
+    names = np.array(list(first(featureSet).keys()))
     if returnFeatureNames:
-        return mat, names
+        return array, names
     else:
-        return mat
+        return array
 
 
 def featureSet2df(featureSet: FeatureSet):
@@ -230,16 +232,16 @@ def featureDf2csv(
     logger.success(f'Feature dataframe is saved to {filepath}')
 
 
-def sortTimeSeriesFeatureSet(
-        tsFeatureSet: TimeSeriesFeatureSet,
+def sortTimeSeriesFeatureSetLike(
+        tsFeatureSetLike: TimeSeriesFeatureSetLike,
         accordingTo='Ts',
-) -> TimeSeriesFeatureSet:
-    def key(tsFeature: TimeSeriesFeature):
-        basicInfo, _ = tsFeature
+) -> TimeSeriesFeatureSetLike:
+    def key(tsFeatureLike: TimeSeriesFeatureLike):
+        basicInfo, _ = tsFeatureLike
         return basicInfo[accordingTo]
 
-    tsFeatureSet = sorted(tsFeatureSet, key=key)
-    return tsFeatureSet
+    tsFeatureSetLike = sorted(tsFeatureSetLike, key=key)
+    return tsFeatureSetLike
 
 
 def featureSetDict2csr(
@@ -303,3 +305,25 @@ def saveTimeSeriesFeatureSet(
     featureFilepath = str(Path(folder) / featureFilename)
     savez_compressed(featureFilepath, **csrs)
     logger.success(f'Time series feature set is saved to {featureFilepath}')
+
+
+def savePacketTimeSeriesFeatureSet(
+        folder,
+        ptsFeatureSet: PacketTimeSeriesFeatureSet,
+        indexFilename='Index.csv',
+        featureFilename='Features.npz',
+):
+    mkdir(folder=folder)
+    basicInfos = list()
+    arrays = list()
+    for basicInfo, featureSet in ptsFeatureSet:
+        basicInfos.append(basicInfo)
+        array = featureSet2ndarray(featureSet, False)
+        arrays.append(array)
+    featureSet2csv(
+        str(Path(folder) / indexFilename),
+        basicInfos,
+    )
+    featureFilepath = str(Path(folder) / featureFilename)
+    pickle.dump(arrays, open(featureFilepath, 'wb'))
+    logger.success(f'Packet-based time series feature set is saved to {featureFilepath}')

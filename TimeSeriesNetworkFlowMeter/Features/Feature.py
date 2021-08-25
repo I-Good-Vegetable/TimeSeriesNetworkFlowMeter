@@ -4,9 +4,9 @@ from TimeSeriesNetworkFlowMeter.AbstractPacket import AbstractPacketBase
 from TimeSeriesNetworkFlowMeter.Config import getConfig
 from TimeSeriesNetworkFlowMeter.Flow import Flow, EmptyFlow
 from TimeSeriesNetworkFlowMeter.Log import logger
-from TimeSeriesNetworkFlowMeter.Session import Unidirectional, Bidirectional
-from TimeSeriesNetworkFlowMeter.Typing import Features, AbstractPacketList
-from TimeSeriesNetworkFlowMeter.Utils import addStatChar2Dict
+from TimeSeriesNetworkFlowMeter.Session import Unidirectional, Bidirectional, pDirection, Forward, Backward
+from TimeSeriesNetworkFlowMeter.Typing import Features, AbstractPacketList, FeatureSet
+from TimeSeriesNetworkFlowMeter.Utils import addStatChar2Dict, first
 
 ForwardFeaturePrefix = getConfig().get('Feature', 'forward feature prefix')
 BackwardFeaturePrefix = getConfig().get('Feature', 'backward feature prefix')
@@ -241,3 +241,30 @@ def getAllBuildInFeatureExtractorManager(activityTimeout=None) -> FeatureExtract
     )
     logger.info(f'All feature extractors (with BasicInfo) summary:\n{fem}')
     return fem
+
+
+def extractFeatureSetFromFlowPackets(
+        flow: Flow,
+        dirMap=None,
+) -> FeatureSet:
+    if dirMap is None:
+        dirMap = {Forward: 0, Backward: 1}
+    prevPacket = first(flow.packets)
+    featureList = list()
+    for packet in flow.packets:
+        direction = dirMap[pDirection(packet, flow.sessionKey)]
+        iat = packet.getTs() - prevPacket.getTs()
+        size = packet.getLen()
+        tcpFlags = {
+            k: packet.getTcpFlag(k)
+            for k in packet.getTcpFlagNames()
+        }
+        features = {
+            'Direction': direction,
+            'IAT': iat,
+            'Size': size,
+            **tcpFlags,
+        }
+        featureList.append(features)
+        prevPacket = packet
+    return featureList
