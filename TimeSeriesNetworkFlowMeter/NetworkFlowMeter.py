@@ -125,6 +125,7 @@ def pcaps2datasetsGenerator(
     nSucceed = 0
     for index, pcapFile in enumerate(pcapFiles):
         try:
+            logger .info(f'Processing ({index + 1}/{nPcap}): {pcapFile}')
             yield index, pcapFile, outputFolder
         except Exception as e:
             logger.error(f'{pcapFile} cannot be processed \n {e}')
@@ -274,7 +275,7 @@ def pcaps2csvs(
         sortFeatureAccordingTo='Ts',
         **kwargs4pcap2generator,
 ):
-    g = pcaps2datasetsGenerator(pcapFolder, outputFolder, recursively, ignoreExceptions)
+    g = pcaps2datasetsGenerator(pcapFolder, outputFolder, recursively, True)
     for index, pcapFile, outputFolder in g:
         csvFile = (outputFolder / pcapFile.name).with_suffix('.csv')
         try:
