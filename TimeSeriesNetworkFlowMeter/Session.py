@@ -113,7 +113,7 @@ class FlowSessionManager:
         :param direction: Unidirectional or Bidirectional
         """
         if direction not in self._supportedDirection:
-            raise ValueError(f'Unsupported direction: {self._direction}')
+            raise ValueError(f'Unsupported direction: {direction}')
         self._direction = direction
         # _sessions: {packet session key: (flow session key, direction)}
         self._sessions = dict()

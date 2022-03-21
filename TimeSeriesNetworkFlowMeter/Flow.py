@@ -7,6 +7,8 @@ from TimeSeriesNetworkFlowMeter.Typing import FlowSessionKeyInfo, AbstractPacket
 from TimeSeriesNetworkFlowMeter.Log import logger
 
 DefaultFlowTimeout = float(getConfig().get('Flow', 'timeout'))
+DefaultEarliness = int(getConfig().get('Flow', 'earliness'))
+DefaultEarlinessDuration = float(getConfig().get('Flow', 'earliness duration'))
 DefaultSubFlowLen = int(getConfig().get('Flow', 'sub flow len'))
 
 
@@ -290,6 +292,40 @@ class Flow(FlowBase):
 
         self._lastPacket = packet
         self._appendPacketToLists(packet, direction)
+
+
+class FlowWithEarliness(Flow):
+
+    _earliness = DefaultEarliness
+    _earlinessDuration = DefaultEarlinessDuration
+
+    @classmethod
+    def earliness(cls, value=None):
+        if value is not None:
+            cls._earliness = float(value)
+        else:
+            return cls._earliness
+
+    @classmethod
+    def earlinessDuration(cls, value=None):
+        if value is not None:
+            cls._earlinessDuration = float(value)
+        else:
+            return cls._earlinessDuration
+
+    def _appendPacketToLists(
+            self,
+            packet: AbstractPacketBase,
+            direction,
+    ):
+        if len(self.packets) >= self.earliness():
+            return
+        if packet.getTs() - self.initTs >= self.earlinessDuration():
+            return
+        super(FlowWithEarliness, self)._appendPacketToLists(
+            packet,
+            direction,
+        )
 
 
 def _generateTimeout(flowTimeout, subFlowLen):

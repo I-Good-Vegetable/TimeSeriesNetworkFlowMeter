@@ -151,6 +151,7 @@ def flowGenerator(
 
 def packets2flows(
         packets: Iterable[AbstractPacketBase],
+        FlowType: FlowLike = Flow,
         flowSessionManager: FlowSessionManager = None,
         flowTimeout=None,
         returnSortedFlows=True,
@@ -163,6 +164,7 @@ def packets2flows(
     for flow in flowGenerator(
             packets,
             flowSessionManager,
+            FlowType,
     ):
         if flowTimeoutCallback is not None:
             flowTimeoutCallback(flow)
@@ -174,6 +176,7 @@ def packets2flows(
 
 def packets2featureSet(
         packets: Iterable[AbstractPacketBase],
+        FlowType: FlowLike = Flow,
         flowSessionManager: FlowSessionManager = None,
         flowTimeout=None,
         flowTimeoutCallback: Callable[[Features], Any] = None,
@@ -197,6 +200,7 @@ def packets2featureSet(
     for flow in flowGenerator(
             packets,
             flowSessionManager,
+            FlowType,
     ):
         features = fem.extract(flow)
         if flowTimeoutCallback is not None:
@@ -214,6 +218,7 @@ def pcap2csv(
             Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
+        FlowType: FlowLike = Flow,
         flowSessionManager: FlowSessionManager = None,
         flowTimeout=None,
         flowTimeoutCallback: Callable[[Features], Any] = None,
@@ -239,6 +244,7 @@ def pcap2csv(
             castTo,
             **kwargs4pcap2generator,
         ),
+        FlowType,
         flowSessionManager,
         flowTimeout,
         flowTimeoutCallback,
@@ -262,6 +268,7 @@ def pcaps2csvs(
             Type[AbstractPacketBase],
             Callable
         ] = AbstractPacket,
+        FlowType: FlowLike = Flow,
         flowSessionManager: FlowSessionManager = None,
         flowTimeout=None,
         flowTimeoutCallback: Callable[[Features], Any] = None,
@@ -283,6 +290,7 @@ def pcaps2csvs(
                 str(pcapFile),
                 str(csvFile),
                 castTo,
+                FlowType,
                 flowSessionManager,
                 flowTimeout,
                 flowTimeoutCallback,
